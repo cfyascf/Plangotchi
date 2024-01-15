@@ -30,11 +30,25 @@ const uint8_t PIN_LDR01 = ;
 const uint8_t PIN_PIR = ;
 const uint8_t PIN_MSENSOR = ;
 
-const uint8_t PIN_LED00 = "";
-const uint8_t PIN_LED01 = "";
-const uint8_t PIN_LED02 = "";
-const uint8_t PIN_LED03 = "";
-const uint8_t PIN_LED04 = "";
+const uint8_t PIN_LED00R = "";
+const uint8_t PIN_LED00G = "";
+const uint8_t PIN_LED00B = "";
+
+const uint8_t PIN_LED01R = "";
+const uint8_t PIN_LED01G = "";
+const uint8_t PIN_LED01B = "";
+
+const uint8_t PIN_LED02R = "";
+const uint8_t PIN_LED02G = "";
+const uint8_t PIN_LED02B = "";
+
+const uint8_t PIN_LED03R = "";
+const uint8_t PIN_LED03G = "";
+const uint8_t PIN_LED03B = "";
+
+const uint8_t PIN_LED04R = "";
+const uint8_t PIN_LED04G = "";
+const uint8_t PIN_LED04B = "";
 
 // ------------- * CONST * -------------
 
@@ -58,10 +72,10 @@ float luminosity00;
 float luminosity01;
 float mluminosity;
 
-uint8_t presence;
-
 float moisture;
 float moisture_perc;
+
+uint8_t presence;
 
 int flag = 0;
 
@@ -90,20 +104,34 @@ void sendData()
 
   FirebaseJson json;
   json.set("temperature", mtemperature);
-  json.set("moisture", moisture_perc);
   json.set("luminosity", mluminosity);
+  json.set("moisture", moisture_perc);
   json.set("presence", presence);
+  json.set("flag", flag);
 
   bool status = Firebase.updateNode(fbdo, "/sensors", json);
+
   if (!status)
   {
       Serial.print("Failed to send data to Firebase: ");
       Serial.println(fbdo.errorReason().c_str());
   }
-  else if(status)
+  else
   {
     Serial.println("Data sent with success!");
+    flag++;
   }
+}
+
+void setColor(int vermelho, int verde, int azul)
+{
+  int vermelho = 255 - vermelho; 
+  int verde = 255 - verde; 
+  int azul = 255 - azul; 
+
+  analogWrite(pinoR, vermelho);
+  analogWrite(pinoG, verde); 
+  analogWrite(pinoB, azul); 
 }
 
 void setup() 
@@ -120,8 +148,28 @@ void setup()
 
   pinMode(PIN_LDR00, INPUT);
   pinMode(PIN_LDR01, INPUT);
-  pinMode(PIN_PIR, INPUT);
   pinMode(PIN_MSENSOR, INPUT);
+  pinMode(PIN_PIR, INPUT);
+
+  pinMode(PIN_LED00R, OUTPUT);
+  pinMode(PIN_LED00G, OUTPUT);
+  pinMode(PIN_LED00B, OUTPUT);
+
+  pinMode(PIN_LED01R, OUTPUT);
+  pinMode(PIN_LED01G, OUTPUT);
+  pinMode(PIN_LED01B, OUTPUT);
+
+  pinMode(PIN_LED02R, OUTPUT);
+  pinMode(PIN_LED02G, OUTPUT);
+  pinMode(PIN_LED02B, OUTPUT);
+
+  pinMode(PIN_LED03R, OUTPUT);
+  pinMode(PIN_LED03G, OUTPUT);
+  pinMode(PIN_LED03B, OUTPUT);
+
+  pinMode(PIN_LED04R, OUTPUT);
+  pinMode(PIN_LED04G, OUTPUT);
+  pinMode(PIN_LED04B, OUTPUT);
 }
 
 void loop() 
@@ -135,8 +183,8 @@ void loop()
   temperature01 = dht01.readTemperature();
   luminosity00 = analogRead(PIN_LDR00);
   luminosity01 = analogRead(PIN_LDR01);
-  presence = digitalRead(PIN_PIR);
   moisture = analogRead(PIN_MSENSOR);
+  presence = digitalRead(PIN_PIR);
 
   if(isnan(temperature00) || isnan(temperature01))
   {
