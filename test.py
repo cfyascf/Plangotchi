@@ -73,7 +73,7 @@ default_app = firebase_admin.initialize_app(cred_obj, {'databaseURL':databaseURL
 
 def to_fb(oscar):
     ref = db.reference('stats')
-    new_stat_ref = ref.push({
+    new_stat_ref = ref.set({
         "health": oscar.health,
         "humor": oscar.humor,
         "thirst": oscar.thirst,
