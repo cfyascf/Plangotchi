@@ -146,6 +146,13 @@ void setup()
 
   connectWiFi(WIFI_SSID, WIFI_PASSWORD);
 
+  fbconfig.database_url = FB_HOST;
+  fbconfig.signer.tokens.legacy_token = FB_KEY;
+  fbdo.setBSSLBufferSize(4096, 1024);
+  Firebase.reconnectWiFi(true);
+  Firebase.begin(&fbconfig, &fbauth);
+  firebase::database::DatabaseReference dbref = database->GetReference();
+
   pinMode(PIN_LDR00, INPUT);
   pinMode(PIN_LDR01, INPUT);
   pinMode(PIN_MSENSOR, INPUT);
@@ -207,4 +214,6 @@ void loop()
   }
 
   sendData();
+
+  firebase::Future<firebase::database::DataSnapshot> result = dbRef.GetReference("Leaders").GetValue();
 }

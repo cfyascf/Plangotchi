@@ -1,14 +1,16 @@
 import json
 import requests
-import pyodbc
 import time
 import firebase_admin as db
 import threading
+import os
 
 """
 bem2ct
 gaussKronrod754
 """
+
+# -------------- * MAIN CLASS * --------------
 
 class Plangotchi:
     humor: str
@@ -31,10 +33,10 @@ class Plangotchi:
             self.humor = "Triste"
         
         elif(value >= 2 and value > 4):
-            self.humor = "Ok"
+            self.humor = "Feliz"
         
         elif(value >= 4):
-            self.humor = "Feliz"
+            self.humor = "Ok"
         
 
     def calculate_health(self, moisture, luminosity, temperature):
@@ -44,19 +46,19 @@ class Plangotchi:
             self.health = "Doente"
 
         elif(value >= 2 and value > 4):
-            self.health = "Sobrevivendo"
-
-        elif(value >= 4):
             self.health = "Saudavel"
 
+        elif(value >= 4):
+            self.health = "Sobrevivendo"
+
     def calculate_thirst(self, moisture):
-        if(moisture < 50):
+        if(moisture < 3):
             self.thirst = "Com sede"
         
-        elif(moisture >= 50 and moisture <= 70):
+        elif(moisture >= 3 and moisture <= 4):
             self.thirst = "Satisfeito"
         
-        elif(value > 70):
+        elif(value > 4):
             self.thirst = "Encharcado"
 
     def calculate_life(self):
@@ -70,19 +72,16 @@ class Plangotchi:
         if(self.life == 0):
             self.alive = False
 
-# -------------- * SQL CONFIG * --------------
-
-server = 'CTNB1553\\SQLEXPRESS01'
-database = 'yasminteste'
-driver= '{ODBC Driver 17 for SQL Server}'
-cnxn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+'; PORT=1433; DATABASE='+database)
-cursor = cnxn.cursor()
-
 # -------------- * FIREBASE CONFIG * --------------
 
 databaseURL = 'https://plangotchi-default-rtdb.firebaseio.com/'
 cred_obj = firebase_admin.credentials.Certificate('plangotchi-sdk.json')
 default_app = firebase_admin.initialize_app(cred_obj, {'databaseURL':databaseURL})
+
+os.environ["HTTP_PROXY"] = "http://rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTPS_PROXY"] = "http://rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTP_PROXY_USER"] = "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTPS_PROXY_USER"] = "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
 
 # -------------- * VARIABLES * --------------
 
@@ -94,8 +93,10 @@ last_flag = 1
 
 # -------------- * FUNCTIONS * --------------
 
-# get data
-def sinal():
+
+# .. makes requests to get real time data from 
+# firebase and returns as an array ..
+def signal():
     proxies = {
     "http": "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080",
     "https": "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
@@ -115,33 +116,48 @@ def sinal():
 
     return temperature, luminosity, moisture, presence, flag
 
-# data into sql
-def insert_data(sinal):
+
+# .. fills data arrays using compressed
+# data to a gap from 1 to 5 ..
+def get_data(signal):
     if(signal[4] == last_flag):
-        return 0
+        return 0 
 
-    last_flag = signal[4]
-    
-    cursor.execute(f"INSERT dbo.Sensor (Temperature, Humidity, Luminosity, Presence) VALUES ({sinal[0]}, {sinal[1]}, {sinal[2]}, {sinal[3]});")
-    cnxn.commit()
-    print("Data inserted with success!")
+    last_flag = signal[4] # .. so repeated data won't get into the arrays ..
+
+    temp_value = ((signal[0] - 18) * (5 - 1) / (30 - 18)) + 1
+    lumi_value = signal[1]
+    moist_value = ((signal[2] - 20) * (5 - 1) / (90 - 20)) + 1
+
+    last_index = len(lumi_data) - 1
+    sum = 0
+    i = last_index
+    while i > last_index - 5:
+        sum = sum + pres_data[i]
+        i -= 1
+
+    pres_value = sum
+
+    temp_data.append(temp_value)
+    lumi_data.append(lumi_value)
+    moist_data.append(moist_value)
+    pres_data.append(pres_value)
 
 
-def select_data(list, index):
-    cursor.execute(f"SELECT {table}, timestamp FROM dbo.Sensor")
-    for row in cursor.fetchall():
-        list.append(row[index])
-
-    print("Table recovered with success!")
-
+# .. based on the data arrays, calculate
+# oscar's stats using class methods ..
 def update_stats(oscar):
     last_index = len(lumi_data) - 1
-    oscar.calculate_health(moist_data[last_index], lumi_data[last_index], temp_data[last_index])
+
     oscar.calculate_humor(lumi_data[last_index], temp_data[last_index], pres_data[last_index])
+    oscar.calculate_health(moist_data[last_index], lumi_data[last_index], temp_data[last_index])
     oscar.calculate_thirst(moist_data[last_index])
     oscar.calculate_life()
     oscar.calculate_status()
 
+
+# .. saves the calculated stats
+# on firebase realtime database ..
 def to_fb(oscar):
     ref = db.reference('stats')
     new_stat_ref = ref.push({
@@ -152,25 +168,15 @@ def to_fb(oscar):
         "status": oscar.status
     })
 
+
 if __name__ == '__main__':
     oscar = Plangotchi()
 
-    insert_th = threading.Thread(target=insert_data, args=(signal,))
-
-    select_temp_th = threading.Thread(target=select_data, args=(temp_data, 0))
-    select_lumi_th = threading.Thread(target=select_data, args=(lumi_data, 1))
-    select_moist_th = threading.Thread(target=select_data, args=(moist_data, 2))
-    select_pres_th = threading.Thread(target=select_data, args=(pres_data, 3))
-
+    getdata_th = threading.Thread(target=get_data, args=(signal()))
     stats_th = threading.Thread(target=update_stats, args=(oscar))
-
     fb_th = threading.Thread(target=to_fb, args=(oscar))
 
-    insert_th.start()
-    select_temp_th.start()
-    select_lumi_th.start()
-    select_moist_th.start()
-    select_pres_th.start()
+    getdata_th.start()
     stats_th.start()
     fb_th.start()
 
