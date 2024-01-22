@@ -29,6 +29,7 @@ const uint8_t PIN_LDR01 = ;
 
 const uint8_t PIN_PIR = ;
 const uint8_t PIN_MSENSOR = ;
+const uint8_t PIN_BUTTON = ;
 
 const uint8_t PIN_LED00R = "";
 const uint8_t PIN_LED00G = "";
@@ -52,8 +53,8 @@ const uint8_t PIN_LED04B = "";
 
 // ------------- * CONST * -------------
 
-const char WIFI_SSID[] = "yasses redmi";
-const char WIFI_PASSWORD[] = "yasmi123456";
+const char WIFI_SSID[] = "belisarius";
+const char WIFI_PASSWORD[] = "senhaaaa";
 
 const char FB_HOST[] = "https://plangotchi-default-rtdb.firebaseio.com/";
 const char FB_SECRET[] = "H8faDHZoKN2657IZLqz3O7ARvnx2IDKZkWI7oC22";
@@ -76,6 +77,8 @@ float moisture;
 float moisture_perc;
 
 uint8_t presence;
+
+uint8_t button;
 
 int flag = 0;
 
@@ -120,6 +123,7 @@ void sendData()
   json.set("moisture", moisture_perc);
   json.set("presence", presence);
   json.set("flag", flag);
+  json.set("button", button);
 
   bool status = Firebase.updateNode(fbdo, "/sensors", json);
 
@@ -317,6 +321,7 @@ void setup()
   pinMode(PIN_LDR01, INPUT);
   pinMode(PIN_MSENSOR, INPUT);
   pinMode(PIN_PIR, INPUT);
+  pinMode(PIN_BUTTON, INPUT_PULLDOWN);
 
   pinMode(PIN_LED00R, OUTPUT);
   pinMode(PIN_LED00G, OUTPUT);
@@ -350,6 +355,7 @@ void loop()
   luminosity01 = analogRead(PIN_LDR01);
   moisture = analogRead(PIN_MSENSOR);
   presence = digitalRead(PIN_PIR);
+  button = digitalRead(PIN_BUTTON);
 
   if(isnan(temperature00) || isnan(temperature01))
   {
@@ -369,6 +375,11 @@ void loop()
   if(isnan(presence))
   {
     Serial.println("Failed to read PIR sensor \\:");
+  }
+
+  if(isnan(button))
+  {
+    Serial.println("Failed to read button \\:");
   }
 
   sendData();
