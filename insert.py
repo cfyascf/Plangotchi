@@ -144,6 +144,8 @@ def to_fb(oscar):
     })
 
 def play_audio():
+    pg.init()
+    
     root = r'C:\Users\disrct\Desktop\yasmimcf\PLANTGOTCHI\PLANGOTCHI\audio'
 
     audio = [(0, '\de_boa.mp3'), (1, 'grito_tristeza.mp3'), (2, 'happy.mp3'), (3, 'meio_paia.mp3'), (4, 'sede.mp3')]
@@ -171,8 +173,6 @@ def plant_voice():
 
 
 if __name__ == '__main__':
-    pg.init()
-
     oscar = Plangotchi()
     
     getdata_th = threading.Thread(target=get_data, args=signal())
