@@ -243,56 +243,89 @@ void setStats()
   }
 }
 
-void printLcd()
+void printlcd00()
 {
-  lcd.clear();
+  lcd00.clear();
 
-  lcd.setCursor(0, 0);
-  lcd.print("* %s *", &humor);
+  lcd00.setCursor(0, 0);
+  lcd00.print("* humor *");
 
-  lcd.setCursor(0, 1);
-  lcd.print("* %s *", &health);
+  lcd00.setCursor(0, 1);
+  lcd00.print("* health *");
 
-  delay(5000);
+  delay(2500);
 
   for (int posicao = 0; posicao < 16; posicao++)
   {
-    lcd.scrollDisplayRight();
+    lcd00.scrollDisplayRight();
     delay(150);
   }
 
   delay(500);
 
-  lcd.setCursor(0, 0);
-  lcd.print("* Life  -");
+  lcd00.setCursor(0, 0);
+  lcd00.print("* Life  - 1 *");
 
-  lcd.setCursor(11, 0);
-  lcd.printf("%d", life);
+  lcd00.setCursor(0, 1);
+  lcd00.print("* Thirst *");
 
-  lcd.setCursor(14, 0);
-  lcd.print(" *");
-
-  lcd.setCursor(0, 1);
-  lcd.print("* %s *", &thirst);
-
-  delay(5000);
+  delay(2500);
 
   for (int posicao = 0; posicao < 16; posicao++)
   {
-    lcd.scrollDisplayLeft();
+    lcd00.scrollDisplayLeft();
+    delay(150);
+  }
+
+  delay(2500);
+
+  for (int posicao = 0; posicao < 16; posicao++)
+  {
+    lcd00.scrollDisplayRight();
+    delay(150);
+  }
+
+  delay(500);
+}
+
+void printlcd01(){
+  lcd01.clear();
+
+  lcd01.setCursor(0, 0);
+  lcd01.print("* Temp - 30 *");
+
+  lcd01.setCursor(0, 1);
+  lcd01.print("* Lumi - 2 *");
+
+  delay(2500);
+
+  for (int posicao = 0; posicao < 16; posicao++)
+  {
+    lcd01.scrollDisplayRight();
     delay(150);
   }
 
   delay(500);
 
-  lcd.setCursor(0, 0);
-  lcd.print("* %s *", &status);
+  lcd01.setCursor(0, 0);
+  lcd01.print("* Humi - 60% *");
 
-  delay(5000);
+  lcd01.setCursor(0, 1);
+  lcd01.print("* PLANGOTCHI *");
+
+  delay(2500);
 
   for (int posicao = 0; posicao < 16; posicao++)
   {
-    lcd.scrollDisplayRight();
+    lcd01.scrollDisplayLeft();
+    delay(150);
+  }
+
+  delay(2500);
+
+  for (int posicao = 0; posicao < 16; posicao++)
+  {
+    lcd01.scrollDisplayRight();
     delay(150);
   }
 
@@ -388,6 +421,7 @@ void loop()
 
   setStats();
 
-  printLcd();
+  printlcd00();
+  printlcd01();
 
 }
