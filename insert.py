@@ -1,57 +1,198 @@
 import json
 import requests
-import pyodbc
 import time
+import firebase_admin
+from firebase_admin import db
+import threading
+import os
+import pygame as pg
+import random
 
 """
 bem2ct
 gaussKronrod754
 """
 
-# connect to sql
-server = 'CTNB1553\\SQLEXPRESS01'
-database = 'tempdbo'
-username = 'admin'
-password = 'admin'
-driver= '{ODBC Driver 17 for SQL Server}'
-cnxn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+'; PORT=1433; DATABASE='+database+';UID='+username+';PWD='+ password)
-cursor = cnxn.cursor()
+# -------------- * MAIN CLASS * --------------
 
-# get data
-def sinal():
-    proxy = {
-    "http": "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080",
-    "https": "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
-    }
+class Plangotchi:
+    humor: int
+    health: int
+    thirst: int
+    life: int
+    status: int
 
-    url_temperature = 'https://esp32andfirebase-ec772-default-rtdb.firebaseio.com/Sensor/temperatura.json'
-    url_humidity = 'https://esp32andfirebase-ec772-default-rtdb.firebaseio.com/Sensor/umidade.json'
-    url_luminosity = 'https://esp32andfirebase-ec772-default-rtdb.firebaseio.com/Sensor/luminosidade.json'
+    def __init__(self, humor = 3, health = 3, thirst = 3, life = 5, status = 1):
+        self.humor = humor
+        self.health = health
+        self.thirst = thirst
+        self.life = life
+        self.status = status
 
-    temperature = float(requests.get(url_temperature, proxies=proxies).content)
-    humidity = float(requests.get(url_humidity, proxies=proxies).content)
-    luminosity = float(requests.get(url_luminosity, proxies=proxies).content)
+    def calculate_humor(self, luminosity, temperature, presence):
+        self.humor = (luminosity + temperature + presence) / 3
 
-    return temperature, humidity, luminosity
+    def calculate_health(self, moisture, luminosity, temperature):
+        self.health = (moisture + luminosity + temperature) / 3
+
+    def calculate_thirst(self, moisture):
+        self.thirst = moisture
+
+    def calculate_life(self):
+        if(self.humor > 2 and self.health < 2):
+            self.life = self.life - 2
+
+        elif(self.humor < 4 and self.health < 4):
+            self.life = self.life - 1
+
+    def calculate_status(self):
+        if(self.life == 0):
+            self.status = 0
+
+# -------------- * FIREBASE CONFIG * --------------
+
+databaseURL = 'https://plangotchi-default-rtdb.firebaseio.com/'
+cred_obj = firebase_admin.credentials.Certificate(r'C:\Users\disrct\Desktop\yasmimcf\PLANTGOTCHI\PLANGOTCHI\plangotchi\plangotchi-sdk.json')
+default_app = firebase_admin.initialize_app(cred_obj, {'databaseURL':databaseURL})
+
+os.environ["HTTP_PROXY"] = "http://rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTPS_PROXY"] = "http://rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTP_PROXY_USER"] = "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
+os.environ["HTTPS_PROXY_USER"] = "http://disrct:ets%40bosch207@rb-proxy-ca1.bosch.com:8080"
+
+# -------------- * VARIABLES * --------------
+
+temp_data = []
+lumi_data = []
+moist_data = []
+pres_data = []
+button_data = []
+last_flag = 1
+
+# -------------- * FUNCTIONS * --------------
 
 
-# data into sql
-def insert_data(sinal):
-    cursor.execute(f"INSERT dbo.Sensor (Temperatura, Umidade, Luminosidade) VALUES ({sinal[0]}, {sinal[1]}, {sinal[2]});")
-    con.commit()
-    print("Data inserted with success!")
+# .. makes requests to get real time data from 
+# firebase and returns as an array ..
+def signal():
+    ref = db.reference('sensors/temperature')
+    temperature = ref.get()
 
-def select_data(table, list):
-    cursor.execute(f"SELECT {table}, timestamp FROM dbo.Sensor")
-    row = cursor.fetchone()
-    lista_tempo=[]
+    ref = db.reference('sensors/luminosity')
+    luminosity = ref.get()
 
-    while row:
-        list.append(row[0])
-        listatempo.append(str(row[1]))
-        row = cursor.fetchone()
+    ref = db.reference('sensors/moisture')
+    moisture = ref.get()
 
-    print("Table recovered with success!")
+    ref = db.reference('sensors/presence')
+    presence = ref.get()
+
+    ref = db.reference('sensors/flag')
+    flag = ref.get()
+
+    ref = db.reference('sensors/button')
+    button = ref.get()
+
+    return temperature, luminosity, moisture, presence, flag, button
+
+
+# .. fills data arrays using compressed
+# data to a gap from 1 to 5 ..
+def get_data(temp, lumi, moist, pres, flag, button):
+    global last_flag
+
+    if(flag == last_flag):
+        return 0 
+
+    last_flag = flag # .. so repeated data won't get into the arrays ..
+
+    temp_value = ((temp - 18) * (5 - 1) / (30 - 18)) + 1
+    lumi_value = lumi
+    moist_value = ((moist - 0.1) * (1 - 0.1) / (90 - 20)) + 0.1
+    pres_value = pres
+    button_value = button
+
+    temp_data.append(temp_value)
+    lumi_data.append(lumi_value)
+    moist_data.append(moist_value)
+    pres_data.append(pres_value)
+    button_data.append(button_value)
+
+
+# .. based on the data arrays, calculate
+# oscar's stats using class methods ..
+def update_stats(oscar):
+    last_index = len(lumi_data) - 1
+
+    oscar.calculate_humor(lumi_data[last_index], temp_data[last_index], pres_data[last_index])
+    oscar.calculate_health(moist_data[last_index], lumi_data[last_index], temp_data[last_index])
+    oscar.calculate_thirst(moist_data[last_index])
+    oscar.calculate_life()
+    oscar.calculate_status()
+
+
+# .. saves the calculated stats
+# on firebase realtime database ..
+def to_fb(oscar):
+    ref = db.reference('stats')
+    new_stat_ref = ref.set({
+        "health": oscar.health,
+        "humor": oscar.humor,
+        "thirst": oscar.thirst,
+        "life": oscar.life,
+        "status": oscar.status
+    })
+
+# def to_fb(oscar):
+#     ref = db.reference('sensors')
+#     new_stat_ref = ref.set({
+#         "temperature": 23.5,
+#         "luminosity": 2.3,
+#         "moisture": 0.8,
+#         "presence": 1,
+#         "button": 1,
+#         "flag": 63
+#     })
+
+def play_audio():
+    pg.init()
+    
+    root = r'C:\Users\disrct\Desktop\yasmimcf\PLANTGOTCHI\PLANGOTCHI\audio'
+
+    audio = [(0, 'de_boa.mp3'), (1, 'grito_tristeza.mp3'), (2, 'happy.mp3'), (3, 'meio_paia.mp3'), (4, 'sede.mp3')]
+
+    num = random.randint(0, 4)
+
+    path = os.path.join(root, audio[num][1])
+
+    pg.mixer.music.load(path)
+    pg.mixer.music.play()
+
+    while pg.mixer.music.get_busy():
+        continue
+
+    pg.quit()
+    
+def plant_voice():
+    last_index = len(button_data) - 1
+
+    if(button_data[last_index] == 1):
+        play_audio()
+    
+    else:
+        return
+
+
+if __name__ == '__main__':
+    oscar = Plangotchi()
+    
+    while True:
+        pg.init()
+        temp, lumi, moist, pres, flag, button = signal()
+        get_data(temp, lumi, moist, pres, flag, button)
+        update_stats(oscar)
+        to_fb(oscar)
+        plant_voice()
 
 
 
