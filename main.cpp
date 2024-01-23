@@ -21,35 +21,15 @@ LiquidCrystal lcd01(RS, EN, D4, D5, D6, D7);
 
 // ------------- * PORTS * -------------
 
-const uint8_t PIN_DHT00 = ;
-const uint8_t PIN_DHT01 = ;
+const uint8_t PIN_DHT00 = 32;
+const uint8_t PIN_DHT01 = 33;
 
-const uint8_t PIN_LDR00 = ;
-const uint8_t PIN_LDR01 = ;
+const uint8_t PIN_LDR00 = 22;
+const uint8_t PIN_LDR01 = 23;
 
-const uint8_t PIN_PIR = ;
-const uint8_t PIN_MSENSOR = ;
-const uint8_t PIN_BUTTON = ;
-
-const uint8_t PIN_LED00R = "";
-const uint8_t PIN_LED00G = "";
-const uint8_t PIN_LED00B = "";
-
-const uint8_t PIN_LED01R = "";
-const uint8_t PIN_LED01G = "";
-const uint8_t PIN_LED01B = "";
-
-const uint8_t PIN_LED02R = "";
-const uint8_t PIN_LED02G = "";
-const uint8_t PIN_LED02B = "";
-
-const uint8_t PIN_LED03R = "";
-const uint8_t PIN_LED03G = "";
-const uint8_t PIN_LED03B = "";
-
-const uint8_t PIN_LED04R = "";
-const uint8_t PIN_LED04G = "";
-const uint8_t PIN_LED04B = "";
+const uint8_t PIN_PIR = 32;
+const uint8_t PIN_MSENSOR = 33;
+const uint8_t PIN_BUTTON = 24;
 
 // ------------- * CONST * -------------
 
@@ -179,17 +159,6 @@ void getData(){
   } else {
     Serial.println(fbdo.errorReason());
   }
-}
-
-void setColor(int r, int g, int b)
-{
-  int vermelho = 255 - r; 
-  int verde = 255 - g; 
-  int azul = 255 - b; 
-
-  analogWrite(pinoR, vermelho);
-  analogWrite(pinoG, verde); 
-  analogWrite(pinoB, azul); 
 }
 
 void setStats()
@@ -355,26 +324,6 @@ void setup()
   pinMode(PIN_MSENSOR, INPUT);
   pinMode(PIN_PIR, INPUT);
   pinMode(PIN_BUTTON, INPUT_PULLDOWN);
-
-  pinMode(PIN_LED00R, OUTPUT);
-  pinMode(PIN_LED00G, OUTPUT);
-  pinMode(PIN_LED00B, OUTPUT);
-
-  pinMode(PIN_LED01R, OUTPUT);
-  pinMode(PIN_LED01G, OUTPUT);
-  pinMode(PIN_LED01B, OUTPUT);
-
-  pinMode(PIN_LED02R, OUTPUT);
-  pinMode(PIN_LED02G, OUTPUT);
-  pinMode(PIN_LED02B, OUTPUT);
-
-  pinMode(PIN_LED03R, OUTPUT);
-  pinMode(PIN_LED03G, OUTPUT);
-  pinMode(PIN_LED03B, OUTPUT);
-
-  pinMode(PIN_LED04R, OUTPUT);
-  pinMode(PIN_LED04G, OUTPUT);
-  pinMode(PIN_LED04B, OUTPUT);
 }
 
 void loop() 
